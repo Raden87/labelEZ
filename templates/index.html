@@ -188,6 +188,7 @@ let currentImage = null;
 let polygons = [];  // {class_id, points:[{x,y}]}
 let activePoly = null;
 let draggingPoint = null;
+let temporaryPoint = null;  // Point that follows mouse until mouse up
 let selectedClassId = 0;
 
 // Zoom and pan state
@@ -380,12 +381,12 @@ canvas.addEventListener("mousedown", (e) => {
     }
   }
   
-  // Else: add new point to active polygon or start new
+  // Else: create temporary point that follows mouse
   if (!activePoly) {
     activePoly = {class_id: selectedClassId, points: []};
     polygons.push(activePoly);
   }
-  activePoly.points.push({x,y});
+  temporaryPoint = {x, y};  // Don't add to polygon yet, just follow mouse
   draw();
 });
 
@@ -409,6 +410,12 @@ canvas.addEventListener("mousemove", (e) => {
     draggingPoint.x = x;
     draggingPoint.y = y;
     draw();
+  } else if (temporaryPoint) {
+    // Update temporary point position with mouse
+    const {x,y} = getMouse(e);
+    temporaryPoint.x = x;
+    temporaryPoint.y = y;
+    draw();
   }
 });
 
@@ -417,6 +424,11 @@ canvas.addEventListener("mouseup", () => {
     // Auto-save after dragging a point
     draggingPoint = null;
     save();
+  } else if (temporaryPoint) {
+    // Add the temporary point to the active polygon
+    activePoly.points.push({x: temporaryPoint.x, y: temporaryPoint.y});
+    temporaryPoint = null;
+    draw();
   } else {
     draggingPoint = null;
   }
@@ -724,6 +736,30 @@ function draw() {
       }
     });
   });
+  
+  // Draw temporary point if it exists
+  if (temporaryPoint && activePoly) {
+    const classColor = generateClassColor(activePoly.class_id);
+    const pointSize = 6 / zoom;
+    
+    // Draw temporary point with a different style to indicate it's temporary
+    ctx.fillStyle = classColor;
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 2 / zoom;
+    ctx.fillRect(temporaryPoint.x-pointSize/2, temporaryPoint.y-pointSize/2, pointSize, pointSize);
+    ctx.strokeRect(temporaryPoint.x-pointSize/2, temporaryPoint.y-pointSize/2, pointSize, pointSize);
+    
+    // Draw line from last point to temporary point if there are existing points
+    if (activePoly.points.length > 0) {
+      const lastPoint = activePoly.points[activePoly.points.length - 1];
+      ctx.strokeStyle = classColor;
+      ctx.lineWidth = 2 / zoom;
+      ctx.beginPath();
+      ctx.moveTo(lastPoint.x, lastPoint.y);
+      ctx.lineTo(temporaryPoint.x, temporaryPoint.y);
+      ctx.stroke();
+    }
+  }
 }
 
 // ===== Undo Last Point =====
