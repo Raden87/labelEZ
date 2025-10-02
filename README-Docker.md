@@ -1,11 +1,19 @@
 # LabelEZ Docker Setup
 
-This document provides instructions for running LabelEZ using Docker.
+This document provides instructions for running LabelEZ using Docker with pen input support and zoom controls.
+
+## Features
+
+- **Pen Input Support**: Windows pen devices supported via Pointer Events API
+- **Zoom Controls**: Dedicated zoom buttons and keyboard shortcuts
+- **Multi-Platform**: Mouse, touch, and stylus input support
+- **Health Checks**: Automatic container monitoring
+- **Security**: Non-root user and volume isolation
 
 ## Prerequisites
 
 - Docker
-- Docker Compose
+- Docker Compose (optional, but recommended)
 
 ## Quick Start
 
@@ -17,11 +25,18 @@ cd labelEZ
 
 2. Build and run with Docker Compose:
 ```bash
-docker-compose up --build
+docker-compose up -d --build
+```
+
+Or use the deployment script:
+```bash
+./deploy.sh
 ```
 
 3. Access the application:
    - Open your browser and go to `http://localhost:5000`
+   - Try zoom controls: `-`, `=`, `R` keys or zoom buttons
+   - Pen devices on Windows should work automatically
 
 ## Manual Docker Build
 
@@ -34,10 +49,11 @@ docker build -t labelez .
 
 2. Run the container:
 ```bash
-docker run -p 5000:5000 \
+docker run -d -p 5000:5000 \
   -v $(pwd)/images:/app/images \
   -v $(pwd)/labels:/app/labels \
   -v $(pwd)/classes.txt:/app/classes.txt \
+  --name labelez-app \
   labelez
 ```
 
@@ -88,6 +104,32 @@ docker-compose up -d
 5. **Access remotely**:
    - Open browser and go to `http://<server-ip>:5000`
    - Make sure firewall allows port 5000
+
+## Keyboard Shortcuts
+
+### Navigation
+- `B` - Previous image
+- `N` - Next image  
+- Arrow keys - Previous/Next image
+
+### Zoom & Pan
+- `-` - Zoom out
+- `=` - Zoom in
+- `R` - Reset zoom and pan
+- `Space + Drag` - Pan view
+- `Mouse wheel` - Zoom
+
+### Drawing
+- `S` - Save annotations
+- `Z` - Undo last point
+- `X` - Delete current polygon
+- Click to add points
+- Click initial point to close polygon
+
+### Class Selection
+- `1-9` - Select classes 0-8
+- `0` - Select class 9
+- `Q-P` - Select classes 10-19
 
 ## Volume Mounts
 

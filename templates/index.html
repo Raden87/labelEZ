@@ -29,6 +29,8 @@
       left: 0;
       width: 100vw;
       height: 100vh;
+      touch-action: none; /* Prevent default touch behaviors */
+      -ms-touch-action: none; /* IE/Edge support */
     }
     
     #left-toolbox {
@@ -148,6 +150,13 @@
       <button id="saveBtn" class="action-btn">Save (S)</button>
       <button id="undoPointBtn" class="action-btn">Undo (Z)</button>
       <button id="deletePolyBtn" class="action-btn">Delete (X)</button>
+    </div>
+    
+    <div class="toolbox-section">
+      <h3>Zoom</h3>
+      <button id="zoomOutBtn" class="action-btn">Zoom Out (-)</button>
+      <button id="zoomInBtn" class="action-btn">Zoom In (=)</button>
+      <button id="resetZoomBtn" class="action-btn">Reset (R)</button>
     </div>
     
     <div class="toolbox-section">
@@ -492,6 +501,22 @@ canvas.addEventListener("touchend", (e) => {
   lastTouchDistance = 0;
 });
 
+// ===== Pointer Events Setup =====
+// Check if pointer events are supported and add listeners
+if (window.PointerEvent) {
+  // Use pointer events for unified input handling (mouse, touch, pen)
+  canvas.addEventListener("pointerdown", handlePointerDown);
+  canvas.addEventListener("pointermove", handlePointerMove);
+  canvas.addEventListener("pointerup", handlePointerUp);
+  canvas.addEventListener("pointercancel", handlePointerUp);
+  
+  // Disable mouse events to prevent double-firing when pointer events are available
+  // Note: We keep mouse events as fallback for older browsers
+  console.log("Pointer events enabled - pen input supported");
+} else {
+  console.log("Pointer events not supported - using mouse/touch events only");
+}
+
 // ===== Mouse coord transform =====
 function getMouse(e) {
   const rect = canvas.getBoundingClientRect();
@@ -503,6 +528,104 @@ function getMouse(e) {
     x: (x - panX) / zoom,
     y: (y - panY) / zoom
   };
+}
+
+// ===== Pointer Events (for pen input support) =====
+function getPointerPosition(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  // Apply inverse zoom and pan transform
+  return {
+    x: (x - panX) / zoom,
+    y: (y - panY) / zoom
+  };
+}
+
+function handlePointerDown(e) {
+  // Only handle primary pointer (left mouse button, first touch, pen tip)
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (e.pointerType === 'touch' && e.isPrimary === false) return;
+  
+  // Prevent default to avoid conflicts
+  e.preventDefault();
+  
+  if (isPanMode) return; // Don't handle clicks in pan mode
+
+  // Normal polygon adding/moving
+  const {x,y} = getPointerPosition(e);
+  // Check if clicking near existing point (account for zoom)
+  const hitRadius = 5 / zoom;
+  
+  // First check if clicking on the start point of the active polygon to close it
+  if (activePoly && activePoly.points.length >= 3) {
+    const firstPoint = activePoly.points[0];
+    if (dist(x,y,firstPoint.x,firstPoint.y) < hitRadius) {
+      // Close the polygon (no duplicate point needed - drawing logic handles closing)
+      activePoly = null;
+      draw(); // Draw to show the closing line
+      save();
+      return;
+    }
+  }
+  
+  // Check if clicking near any existing point
+  for (let poly of polygons) {
+    for (let pt of poly.points) {
+      if (dist(x,y,pt.x,pt.y) < hitRadius) {
+        draggingPoint = pt;
+        activePoly = poly;
+        // Remove saved state when editing a polygon
+        removeSavedState();
+        return;
+      }
+    }
+  }
+  
+  // Else: add new point to active polygon or start new
+  if (!activePoly) {
+    activePoly = {class_id: selectedClassId, points: []};
+    polygons.push(activePoly);
+  }
+  activePoly.points.push({x,y});
+  draw();
+}
+
+function handlePointerMove(e) {
+  e.preventDefault();
+  
+  if (isPanMode) {
+    // Pan directly when space is held, no click needed
+    if (lastPanX !== 0 || lastPanY !== 0) {
+      const dx = e.clientX - lastPanX;
+      const dy = e.clientY - lastPanY;
+      panX += dx;
+      panY += dy;
+      draw();
+    }
+    lastPanX = e.clientX;
+    lastPanY = e.clientY;
+    return;
+  }
+  
+  if (draggingPoint) {
+    const {x,y} = getPointerPosition(e);
+    draggingPoint.x = x;
+    draggingPoint.y = y;
+    draw();
+  }
+}
+
+function handlePointerUp(e) {
+  e.preventDefault();
+  if (draggingPoint) {
+    // Auto-save after dragging a point
+    draggingPoint = null;
+    save();
+  } else {
+    draggingPoint = null;
+  }
 }
 
 function dist(x1,y1,x2,y2){ return Math.hypot(x1-x2,y1-y2); }
@@ -747,6 +870,27 @@ document.addEventListener("keydown", (e) => {
       e.preventDefault();
       document.getElementById("nextBtn").click();
       break;
+    case '-':
+    case '_': // Handle shift+- for underscore
+      e.preventDefault();
+      document.getElementById("zoomOutBtn").click();
+      break;
+    case '=':
+    case '+': // Handle shift+= for plus
+      e.preventDefault();
+      document.getElementById("zoomInBtn").click();
+      break;
+    case 'r':
+    case 'R':
+      e.preventDefault();
+      // Check if we have more than 13 classes, otherwise R is for zoom reset
+      if (classes.length > 13) {
+        const classId = 13; // R key selects class 13
+        selectClass(classId);
+      } else {
+        document.getElementById("resetZoomBtn").click();
+      }
+      break;
     default:
       // Number keys 1-9 and 0 for class selection
       if (e.key >= '1' && e.key <= '9') {
@@ -777,12 +921,6 @@ document.addEventListener("keydown", (e) => {
         }
       } else if (e.key === 'e' || e.key === 'E') {
         const classId = 12; // E key selects class 12
-        if (classId < classes.length) {
-          e.preventDefault();
-          selectClass(classId);
-        }
-      } else if (e.key === 'r' || e.key === 'R') {
-        const classId = 13; // R key selects class 13
         if (classId < classes.length) {
           e.preventDefault();
           selectClass(classId);
@@ -841,6 +979,30 @@ document.addEventListener("keyup", (e) => {
 document.getElementById("nextBtn").onclick = () => loadImage(currentImageIndex+1);
 document.getElementById("prevBtn").onclick = () => loadImage(currentImageIndex-1);
 document.getElementById("saveBtn").onclick = save;
+
+// ===== Zoom Controls =====
+function zoomIn() {
+  const newZoom = Math.min(5, zoom * 1.2);
+  zoom = newZoom;
+  draw();
+}
+
+function zoomOut() {
+  const newZoom = Math.max(0.1, zoom / 1.2);
+  zoom = newZoom;
+  draw();
+}
+
+function resetZoom() {
+  zoom = 1;
+  panX = 0;
+  panY = 0;
+  draw();
+}
+
+document.getElementById("zoomInBtn").onclick = zoomIn;
+document.getElementById("zoomOutBtn").onclick = zoomOut;
+document.getElementById("resetZoomBtn").onclick = resetZoom;
 
 init();
 </script>

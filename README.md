@@ -18,18 +18,27 @@ A web-based polygon labeling tool for creating YOLO format annotations with an i
 ## Features
 
 - **Polygon Drawing**: Click to add points, click first point to close polygon
-- **Class Selection**: Configurable classes with color-coded buttons
-- **Zoom & Pan**: Mouse wheel to zoom, Space+move to pan
+- **Multi-Input Support**: Works with mouse, touch, and pen/stylus input (Pointer Events API)
+- **Class Selection**: Configurable classes with color-coded buttons (supports up to 20 classes)
+- **Zoom & Pan**: 
+  - Mouse wheel to zoom, Space+move to pan
+  - Touch pinch zoom on mobile/tablets
+  - Dedicated zoom buttons and keyboard shortcuts
 - **Keyboard Shortcuts**: 
   - `S` - Save
   - `Z` - Undo last point
   - `X` - Delete current polygon
   - `B` - Back to previous image
   - `N` - Next image
-  - `1-0` - Select class (1-9 for classes 0-8, 0 for class 9)
-  - `Q-P` - Select class (Q for class 10, W for class 11, etc. up to P for class 19)
+  - `-` - Zoom out
+  - `=` - Zoom in
+  - `R` - Reset zoom
+  - `1-9` - Select classes 0-8
+  - `0` - Select class 9 (10th class)
+  - `Q-P` - Select classes 10-19 (Q=class 10, W=class 11, etc.)
 - **Auto-save**: Automatically saves when polygons are completed
 - **Label Loading**: Loads existing labels when switching images
+- **Docker Support**: Ready-to-deploy container with health checks
 
 ## Setup
 
@@ -41,7 +50,7 @@ A web-based polygon labeling tool for creating YOLO format annotations with an i
    ```
 3. Install dependencies:
    ```bash
-   pip install flask
+   pip install flask flask-cors
    ```
 4. Create required directories:
    ```bash
@@ -55,14 +64,49 @@ A web-based polygon labeling tool for creating YOLO format annotations with an i
    ```
 8. Open http://localhost:5000 in your browser
 
+## Docker Deployment (Recommended)
+
+### Quick Start with Docker Compose
+```bash
+# Pull and run the pre-built image
+docker-compose up -d
+
+# Or use the deployment script
+./deploy.sh
+```
+
+### Manual Docker Setup
+```bash
+# Pull the image
+docker pull rantyawset/labelez:latest
+
+# Run the container
+docker run -d -p 5000:5000 \
+  -v $(pwd)/images:/app/images \
+  -v $(pwd)/labels:/app/labels \
+  -v $(pwd)/classes.txt:/app/classes.txt \
+  --name labelez-app \
+  rantyawset/labelez:latest
+```
+
+### Docker Features
+- **Health checks** - automatic container monitoring
+- **Non-root user** - security best practices
+- **Volume mounting** - persistent data storage
+- **Pre-built image** - `rantyawset/labelez:latest` on Docker Hub
+
 ## File Structure
 
 ```
 labelEZ/
-├── app.py              # Flask backend
+├── app.py              # Flask backend with CORS support
 ├── classes.txt         # Class definitions
+├── requirements.txt    # Python dependencies
+├── Dockerfile          # Container configuration
+├── docker-compose.yml  # Docker deployment
+├── deploy.sh           # Deployment script
 ├── templates/
-│   └── index.html      # Frontend interface
+│   └── index.html      # Frontend interface with pen support
 ├── images/             # Your images (not included in repo)
 ├── labels/             # Generated label files (not included in repo)
 └── venv/               # Virtual environment
@@ -70,11 +114,17 @@ labelEZ/
 
 ## Usage
 
-1. **Select Class**: Click class buttons or use keyboard shortcuts (1-0 for first 10 classes, Q-P for classes 10-19)
+1. **Select Class**: Click class buttons or use keyboard shortcuts (1-9, 0, Q-P)
 2. **Draw Polygon**: Click to add points, click first point to close
-3. **Edit**: Drag points to adjust, use Z to undo, X to delete
-4. **Navigate**: Use B/N keys or buttons to switch images
-5. **Save**: Press S or auto-saves when polygon is closed
+3. **Zoom Control**: Pan (space+drag) to navigate; zoom with `/=` keys or buttons
+4. **Edit**: Drag points to adjust, use Z to undo, X to delete
+5. **Navigate**: Use B/N keys or buttons to switch images
+6. **Save**: Press S or auto-saves when polygon is closed
+
+### Input Methods
+- **Mouse**: Standard clicking and dragging
+- **Touch**: Tap to add points, pinch to zoom
+- **Pen/Stylus**: Full support via Pointer Events API (Windows pen devices)
 
 ## Label Format
 
