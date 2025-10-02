@@ -287,7 +287,7 @@ async function loadImage(idx) {
     canvas.height = window.innerHeight;
     
     // Load existing labels for this image
-    await loadExistingLabels(images[idx]);
+    await loadExistingLabels(images[currentImageIndex]);
     
     // Force multiple redraws to prevent artifacts
     requestAnimationFrame(() => {
