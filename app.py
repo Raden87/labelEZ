@@ -29,6 +29,7 @@ def get_classes():
 @app.route("/images")
 def list_images():
     files = [f for f in os.listdir(IMAGES_DIR) if f.lower().endswith((".jpg",".png"))]
+    files.sort()  # Sort files to ensure consistent ordering
     return jsonify(files)
 
 @app.route("/image/<path:filename>")
@@ -37,6 +38,12 @@ def get_image(filename):
 
 @app.route("/load/<path:filename>")
 def load_labels(filename):
+    # Verify that the image file actually exists
+    img_file_path = os.path.join(IMAGES_DIR, filename)
+    if not os.path.exists(img_file_path):
+        print(f"WARNING: Attempted to load labels for non-existent image: {filename}")
+        return jsonify([])
+    
     label_file = os.path.join(LABELS_DIR, os.path.splitext(filename)[0] + ".txt")
     
     if not os.path.exists(label_file):
@@ -82,6 +89,14 @@ def save_labels():
         
         if not img_name:
             response = jsonify({"error": "No image name provided"})
+            response.headers.add("Access-Control-Allow-Origin", "*")
+            return response, 400
+        
+        # Verify that the image file actually exists
+        img_file_path = os.path.join(IMAGES_DIR, img_name)
+        if not os.path.exists(img_file_path):
+            print(f"WARNING: Attempted to save labels for non-existent image: {img_name}")
+            response = jsonify({"error": f"Image file {img_name} does not exist"})
             response.headers.add("Access-Control-Allow-Origin", "*")
             return response, 400
             
