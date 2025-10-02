@@ -349,20 +349,19 @@ async function loadExistingLabels(imageName) {
 
 // ===== Mouse Events =====
 canvas.addEventListener("mousedown", (e) => {
-  if (isPanMode) return; // Don't handle clicks in pan mode
+  console.log("MOUSE DOWN");
+  if (isPanMode) return;
 
-  // Normal polygon adding/moving
   const {x,y} = getMouse(e);
-  // Check if clicking near existing point (account for zoom)
   const hitRadius = 5 / zoom;
   
   // First check if clicking on the start point of the active polygon to close it
   if (activePoly && activePoly.points.length >= 3) {
     const firstPoint = activePoly.points[0];
     if (dist(x,y,firstPoint.x,firstPoint.y) < hitRadius) {
-      // Close the polygon (no duplicate point needed - drawing logic handles closing)
+      // Close the polygon
       activePoly = null;
-      draw(); // Draw to show the closing line
+      draw();
       save();
       return;
     }
@@ -372,6 +371,7 @@ canvas.addEventListener("mousedown", (e) => {
   for (let poly of polygons) {
     for (let pt of poly.points) {
       if (dist(x,y,pt.x,pt.y) < hitRadius) {
+        console.log("Clicked on existing point to edit");
         draggingPoint = pt;
         activePoly = poly;
         // Remove saved state when editing a polygon
@@ -381,56 +381,42 @@ canvas.addEventListener("mousedown", (e) => {
     }
   }
   
-  // Else: create temporary point that follows mouse
+  // Else: Start new polygon and create temporary point
   if (!activePoly) {
     activePoly = {class_id: selectedClassId, points: []};
     polygons.push(activePoly);
   }
-  temporaryPoint = {x, y};  // Don't add to polygon yet, just follow mouse
+  
+  // Create temporary point that will follow mouse
+  temporaryPoint = {x, y};
+  console.log("Creating new temporary point at:", {x, y});
   draw();
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  if (isPanMode) {
-    // Pan directly when space is held, no click needed
-    if (lastPanX !== 0 || lastPanY !== 0) {
-      const dx = e.clientX - lastPanX;
-      const dy = e.clientY - lastPanY;
-      panX += dx;
-      panY += dy;
-      draw();
-    }
-    lastPanX = e.clientX;
-    lastPanY = e.clientY;
-    return;
-  }
-  
-  if (draggingPoint) {
-    const {x,y} = getMouse(e);
-    draggingPoint.x = x;
-    draggingPoint.y = y;
-    draw();
-  } else if (temporaryPoint) {
-    // Update temporary point position with mouse
+  if (temporaryPoint) {
+    // Update temporary point to follow mouse
     const {x,y} = getMouse(e);
     temporaryPoint.x = x;
     temporaryPoint.y = y;
+    draw();
+  } else if (draggingPoint) {
+    // Drag existing point
+    const {x,y} = getMouse(e);
+    draggingPoint.x = x;
+    draggingPoint.y = y;
     draw();
   }
 });
 
 canvas.addEventListener("mouseup", () => {
-  if (draggingPoint) {
-    // Auto-save after dragging a point
-    draggingPoint = null;
-    save();
-  } else if (temporaryPoint) {
-    // Add the temporary point to the active polygon
+  console.log("MOUSE UP");
+  if (temporaryPoint) {
+    console.log("Adding temporary point to polygon at:", temporaryPoint);
+    // Add temporary point to polygon at current position
     activePoly.points.push({x: temporaryPoint.x, y: temporaryPoint.y});
     temporaryPoint = null;
     draw();
-  } else {
-    draggingPoint = null;
   }
 });
 
@@ -517,7 +503,7 @@ canvas.addEventListener("touchend", (e) => {
 // Check if pointer events are supported and add listeners
 if (window.PointerEvent) {
   // Use pointer events for unified input handling (mouse, touch, pen)
-  canvas.addEventListener("pointerdown", handlePointerDown);
+  // canvas.addEventListener("pointerdown", handlePointerDown);
   canvas.addEventListener("pointermove", handlePointerMove);
   canvas.addEventListener("pointerup", handlePointerUp);
   canvas.addEventListener("pointercancel", handlePointerUp);
@@ -595,12 +581,12 @@ function handlePointerDown(e) {
     }
   }
   
-  // Else: add new point to active polygon or start new
+  // Else: create temporary point that follows mouse
   if (!activePoly) {
     activePoly = {class_id: selectedClassId, points: []};
     polygons.push(activePoly);
   }
-  activePoly.points.push({x,y});
+  temporaryPoint = {x, y};  // Don't add to polygon yet, just follow mouse
   draw();
 }
 
