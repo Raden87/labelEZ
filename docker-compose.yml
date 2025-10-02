@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  labelez:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./images:/app/images
+      - ./labels:/app/labels
+      - ./classes.txt:/app/classes.txt
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+    restart: unless-stopped
+    container_name: labelez-app
