@@ -93,14 +93,6 @@ The `images/` and `labels/` directories are excluded from version control to pro
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Contributing
-
-This is AI-generated code, so contributions are welcome but don't expect professional-grade responses. Feel free to:
-- Report bugs (we might fix them, no promises)
-- Suggest improvements (we might implement them, maybe)
-- Fork and modify (it's MIT licensed, go wild)
-- Use it as a starting point for your own projects
-
 ## Final Warning
 
 Remember: **This is AI slop code!** 🎭 It works, but it's not perfect. Use it, break it, fix it, or throw it away - it's all up to you. Just don't come crying to us when your polygons look like abstract art! 🎨
