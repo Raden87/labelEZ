@@ -1,8 +1,10 @@
 # app.py
 from flask import Flask, send_from_directory, request, jsonify, render_template
+from flask_cors import CORS
 import os, json
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
+CORS(app)  # Enable CORS for all routes
 
 IMAGES_DIR = "images"
 LABELS_DIR = "labels"
@@ -62,19 +64,36 @@ def load_labels(filename):
 
 @app.route("/save", methods=["POST"])
 def save_labels():
-    data = request.json
-    img_name = data["image"]
-    anns = data["annotations"]
-    out_file = os.path.join(LABELS_DIR, os.path.splitext(img_name)[0] + ".txt")
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "No data received"}), 400
+            
+        img_name = data.get("image")
+        anns = data.get("annotations", [])
+        
+        if not img_name:
+            return jsonify({"error": "No image name provided"}), 400
+            
+        out_file = os.path.join(LABELS_DIR, os.path.splitext(img_name)[0] + ".txt")
 
-    with open(out_file, "w") as f:
-        for ann in anns:
-            cid = ann["class_id"]
-            pts = " ".join(f"{x:.6f} {y:.6f}" for x, y in ann["points"])
-            f.write(f"{cid} {pts}\n")
+        with open(out_file, "w") as f:
+            for ann in anns:
+                cid = ann["class_id"]
+                pts = " ".join(f"{x:.6f} {y:.6f}" for x, y in ann["points"])
+                f.write(f"{cid} {pts}\n")
 
-    return jsonify({"status": "ok"})
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        print(f"Save error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     os.makedirs(LABELS_DIR, exist_ok=True)
-    app.run(debug=True)
+    os.makedirs(IMAGES_DIR, exist_ok=True)
+    
+    # Get environment variables
+    debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
+    port = int(os.environ.get('PORT', 5000))
+    
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)

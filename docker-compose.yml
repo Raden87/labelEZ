@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  labelez:
+    build: .
+    ports:
+      - "0.0.0.0:5000:5000"
+    volumes:
+      - ./images:/app/images
+      - ./labels:/app/labels
+      - ./classes.txt:/app/classes.txt
+    environment:
+      - FLASK_ENV=production
+      - FLASK_DEBUG=0
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    container_name: labelez-app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
