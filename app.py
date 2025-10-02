@@ -4,7 +4,13 @@ from flask_cors import CORS
 import os, json
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-CORS(app)  # Enable CORS for all routes
+CORS(app, resources={
+    r"/save": {"origins": "*"},
+    r"/load/*": {"origins": "*"},
+    r"/classes": {"origins": "*"},
+    r"/images": {"origins": "*"},
+    r"/image/*": {"origins": "*"}
+})
 
 IMAGES_DIR = "images"
 LABELS_DIR = "labels"
@@ -67,13 +73,17 @@ def save_labels():
     try:
         data = request.json
         if not data:
-            return jsonify({"error": "No data received"}), 400
+            response = jsonify({"error": "No data received"})
+            response.headers.add("Access-Control-Allow-Origin", "*")
+            return response, 400
             
         img_name = data.get("image")
         anns = data.get("annotations", [])
         
         if not img_name:
-            return jsonify({"error": "No image name provided"}), 400
+            response = jsonify({"error": "No image name provided"})
+            response.headers.add("Access-Control-Allow-Origin", "*")
+            return response, 400
             
         out_file = os.path.join(LABELS_DIR, os.path.splitext(img_name)[0] + ".txt")
 
@@ -83,10 +93,13 @@ def save_labels():
                 pts = " ".join(f"{x:.6f} {y:.6f}" for x, y in ann["points"])
                 f.write(f"{cid} {pts}\n")
 
-        return jsonify({"status": "ok"})
+        response = jsonify({"status": "ok"})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        return response
     except Exception as e:
-        print(f"Save error: {e}")
-        return jsonify({"error": str(e)}), 500
+        response = jsonify({"error": str(e)})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        return response, 500
 
 if __name__ == "__main__":
     os.makedirs(LABELS_DIR, exist_ok=True)

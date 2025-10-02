@@ -27,9 +27,13 @@ COPY . .
 # Create directories for images and labels
 RUN mkdir -p images labels
 
+# Create a non-root user with flexible UID/GID
+RUN groupadd -r -g 1000 appuser && useradd -r -u 1000 -g appuser appuser
+
 # Set proper permissions
 RUN chmod -R 755 /app
 RUN chmod +x /app/start.sh
+RUN chown -R appuser:appuser /app
 
 # Expose port
 EXPOSE 5000
@@ -37,6 +41,9 @@ EXPOSE 5000
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/ || exit 1
+
+# Switch to non-root user
+USER appuser
 
 # Set the default command
 CMD ["/app/start.sh"]
