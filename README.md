@@ -5,7 +5,7 @@ A web-based polygon labeling tool for creating YOLO format annotations with an i
 ## Features
 
 - **Polygon Drawing**: Click to add points, click first point to close polygon
-- **Class Selection**: 6 predefined classes with color-coded buttons
+- **Class Selection**: Configurable classes with color-coded buttons
 - **Zoom & Pan**: Mouse wheel to zoom, Space+move to pan
 - **Keyboard Shortcuts**: 
   - `S` - Save
@@ -13,7 +13,8 @@ A web-based polygon labeling tool for creating YOLO format annotations with an i
   - `X` - Delete current polygon
   - `B` - Back to previous image
   - `N` - Next image
-  - `1-6` - Select class
+  - `1-0` - Select class (1-9 for classes 0-8, 0 for class 9)
+  - `Q-P` - Select class (Q for class 10, W for class 11, etc. up to P for class 19)
 - **Auto-save**: Automatically saves when polygons are completed
 - **Label Loading**: Loads existing labels when switching images
 
@@ -34,7 +35,7 @@ A web-based polygon labeling tool for creating YOLO format annotations with an i
    mkdir images labels
    ```
 5. Add your images to the `images/` directory
-6. Update `classes.txt` with your class names (one per line)
+6. Update `classes.txt` with your class names (one per line, supports up to 20 classes)
 7. Run the application:
    ```bash
    python app.py
@@ -56,7 +57,7 @@ labelEZ/
 
 ## Usage
 
-1. **Select Class**: Click class buttons or use number keys 1-6
+1. **Select Class**: Click class buttons or use keyboard shortcuts (1-0 for first 10 classes, Q-P for classes 10-19)
 2. **Draw Polygon**: Click to add points, click first point to close
 3. **Edit**: Drag points to adjust, use Z to undo, X to delete
 4. **Navigate**: Use B/N keys or buttons to switch images
