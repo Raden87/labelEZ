@@ -49,6 +49,10 @@ A web-based polygon labeling tool for creating YOLO format annotations with an i
 - **Auto-save**: Automatically saves when polygons are completed
 - **Label Loading**: Loads existing labels when switching images
 - **Real-time Status Bar**: Shows current image filename, zoom level, polygon count, and completion status
+- **Enhanced UX Features**:
+  - Class name labels on polygon first points (accessibility for color-blind users)
+  - Click inside polygons to select them for editing/deletion
+  - Extended status message visibility (3+ seconds)
 - **Docker Support**: Ready-to-deploy container with health checks
 
 ## Setup
@@ -136,13 +140,16 @@ labelEZ/
    - B/N keys or Previous/Next buttons
    - Status dots show completion status
 5. **Edit Polygons**: 
+   - Click inside polygon to select it
    - Drag existing points to adjust
    - Z key to undo last point
    - X key to delete current polygon
+   - Class names shown on first points for accessibility
 6. **Save**: Automatic when polygon is closed, or press S manually
 7. **Monitor Progress**: 
    - Bottom status bar shows current filename, zoom, polygon count
    - Image list shows color-coded completion status
+   - Extended status messages (3+ seconds visibility)
 
 ### Input Methods
 - **Mouse**: Standard clicking and dragging
@@ -167,6 +174,13 @@ Where coordinates are normalized (0-1) relative to image dimensions.
 - **Space Key Fix**: Prevents image list scroll conflicts during panning
 - **Improved Rendering**: Better image display on page load with multiple draw passes
 - **Status Legend**: Clear indicators for Complete, Partial, Incomplete, and Empty states
+
+### v2.2 - UX Improvements
+- **Class Name Labels**: Text labels on polygon first points for accessibility
+- **Click-to-Select Polygons**: Click inside polygons to select them for editing/deletion
+- **Extended Status Visibility**: Status messages now display for 3+ seconds
+- **Enhanced Accessibility**: Color-blind friendly with text labels alongside colors
+- **Improved Selection**: Better polygon selection workflow for large annotation projects
 
 ## Security Note
 

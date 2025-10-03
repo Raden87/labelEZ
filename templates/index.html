@@ -625,7 +625,7 @@ canvas.addEventListener("mousedown", (e) => {
     }
   }
   
-  // Check if clicking near any existing point
+  // Check if clicking near any existing point first
   for (let poly of polygons) {
     for (let pt of poly.points) {
       if (dist(x,y,pt.x,pt.y) < hitRadius) {
@@ -636,6 +636,16 @@ canvas.addEventListener("mousedown", (e) => {
         removeSavedState();
         return;
       }
+    }
+  }
+  
+  // Check if clicking inside any existing polygon
+  for (let poly of polygons) {
+    if (poly.points.length >= 3 && isPointInPolygon(x, y, poly.points)) {
+      console.log("Clicked inside polygon to select");
+      activePoly = poly;
+      draw();
+      return;
     }
   }
   
@@ -827,7 +837,7 @@ function handlePointerDown(e) {
     }
   }
   
-  // Check if clicking near any existing point
+  // Check if clicking near any existing point first
   for (let poly of polygons) {
     for (let pt of poly.points) {
       if (dist(x,y,pt.x,pt.y) < hitRadius) {
@@ -837,6 +847,15 @@ function handlePointerDown(e) {
         removeSavedState();
         return;
       }
+    }
+  }
+  
+  // Check if clicking inside any existing polygon
+  for (let poly of polygons) {
+    if (poly.points.length >= 3 && isPointInPolygon(x, y, poly.points)) {
+      activePoly = poly;
+      draw();
+      return;
     }
   }
   
@@ -886,6 +905,18 @@ function handlePointerUp(e) {
 }
 
 function dist(x1,y1,x2,y2){ return Math.hypot(x1-x2,y1-y2); }
+
+// Point-in-polygon test using ray casting algorithm
+function isPointInPolygon(x, y, points) {
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    if (((points[i].y > y) !== (points[j].y > y)) &&
+        (x < (points[j].x - points[i].x) * (y - points[i].y) / (points[j].y - points[i].y) + points[i].x)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
 
 // ===== Drawing =====
 function draw() {
@@ -976,6 +1007,24 @@ function draw() {
         ctx.lineWidth = 1 / zoom;
         ctx.fillRect(pt.x-pointSize/2, pt.y-pointSize/2, pointSize, pointSize);
         ctx.strokeRect(pt.x-pointSize/2, pt.y-pointSize/2, pointSize, pointSize);
+        
+        // Add class name text to first point
+        if (classes && classes[poly.class_id]) {
+          ctx.save();
+          ctx.scale(1/zoom, 1/zoom); // Scale text back to screen size
+          ctx.font = `11px Arial`;
+          ctx.fillStyle = "white";
+          ctx.strokeStyle = "black";
+          ctx.lineWidth = 2/zoom;
+          const text = `${poly.class_id}:${classes[poly.class_id]}`;
+          const textX = pt.x * zoom + 8;
+          const textY = pt.y * zoom - 8;
+          
+          // Draw text with outline for better visibility
+          ctx.strokeText(text, textX, textY);
+          ctx.fillText(text, textX, textY);
+          ctx.restore();
+        }
       } else {
         // Regular points
         ctx.fillStyle = classColor;
@@ -1098,7 +1147,7 @@ async function save() {
       statusMessage.textContent = `Saved ${closedPolygons.length} polygon${closedPolygons.length === 1 ? '' : 's'}!`;
     }
     statusMessage.classList.remove("error");
-    setTimeout(() => statusMessage.textContent = "", 2000);
+    setTimeout(() => statusMessage.textContent = "", 3000);
     
     // Refresh image list to update label status
     debounceUpdateImageList();
