@@ -1046,6 +1046,8 @@ async function save() {
   // Save all closed polygons (can be empty array to clear file)
   const closedPolygons = polygons.filter(poly => poly.points.length >= 3);
   
+  console.log("Saving polygons:", closedPolygons.length, "total polygons:", polygons.length);
+  
   // Calculate image display dimensions (same logic as in draw function)
   const imageAspect = currentImage.width / currentImage.height;
   const canvasAspect = canvas.width / canvas.height;
@@ -1076,6 +1078,8 @@ async function save() {
       ])
     }))
   };
+  
+  console.log("Sending data to save:", data);
   
   try {
     const response = await fetch("/save", {
