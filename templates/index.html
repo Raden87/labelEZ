@@ -45,6 +45,79 @@
       width: 100px;
     }
     
+    #bottom-status-bar {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0.9);
+      padding: 4px 12px;
+      border-radius: 4px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      z-index: 1000;
+    }
+    
+    .status-left {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      flex: 1;
+    }
+    
+    .status-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+    }
+    
+    .status-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      justify-content: flex-end;
+    }
+    
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 15px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      color: #ccc;
+    }
+    
+    .legend-dot {
+      font-size: 8px;
+    }
+    
+    #image-filename {
+      color: #4a90e2;
+      font-weight: bold;
+      margin-left: 10px;
+      white-space: nowrap;
+    }
+    
+    #status-message {
+      color: #4a90e2;
+    }
+    
+    #status-message.error {
+      color: #ff4444;
+    }
+    
     #right-toolbox {
       position: fixed;
       top: 20px;
@@ -127,6 +200,66 @@
       background: #218838;
     }
     
+    #image-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border-radius: 3px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Custom scrollbar for image list */
+    #image-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    #image-list::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+    
+    #image-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+    
+    #image-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+    
+    .image-item {
+      display: flex;
+      align-items: center;
+      padding: 4px 6px;
+      cursor: pointer;
+      font-size: 11px;
+      color: #ccc;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .image-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .image-item.current {
+      background: rgba(106, 76, 147, 0.8); /* Purple with less transparency */
+      color: white;
+    }
+    
+    .label-icon {
+      width: 12px;
+      height: 12px;
+      margin-right: 6px;
+      flex-shrink: 0;
+    }
+    
+    .image-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex-grow: 1;
+    }
+    
     #status {
       color: #4a90e2;
       font-size: 9px;
@@ -163,12 +296,11 @@
       <h3>Navigation</h3>
       <button id="prevBtn" class="nav-btn">Back (B)</button>
       <button id="nextBtn" class="nav-btn">Next (N)</button>
+      <div id="image-list">
+        <!-- Image list will be populated here -->
+      </div>
     </div>
     
-    <div class="toolbox-section">
-      <h3>Status</h3>
-      <p id="status"></p>
-    </div>
   </div>
 
   <div id="right-toolbox">
@@ -180,7 +312,27 @@
     </div>
   </div>
 
-<script>
+  <!-- Bottom Status Bar -->
+  <div id="bottom-status-bar">
+    <div class="status-left">
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="color: #28a745;">●</span>Complete</span>
+        <span class="legend-item"><span class="legend-dot" style="color: #ffe066;">●</span>Partial</span>
+        <span class="legend-item"><span class="legend-dot" style="color: #fd7e14;">●</span>Incomplete</span>
+        <span class="legend-item"><span class="legend-dot" style="color: #6c757d;">○</span>Empty</span>
+      </div>
+    </div>
+    <div class="status-center">
+      <span id="status-message"></span>
+    </div>
+    <div class="status-right">
+      <span id="zoom-info">Zoom: 100%</span>
+      <span id="polygon-count">Polygons: 0</span>
+      <span id="image-filename"></span>
+    </div>
+  </div>
+
+  <script>
 let classes = [];
 let images = [];
 let currentImageIndex = 0;
@@ -254,6 +406,102 @@ async function init() {
   // Select first class by default
   selectClass(0);
   loadImage(0);
+  
+  // Populate image list navigation
+  populateImageList();
+}
+
+// ===== Image List Navigation =====
+let imageListUpdateTimeout = null;
+let isPopulatingImageList = false;
+
+function debounceUpdateImageList() {
+  if (imageListUpdateTimeout) {
+    clearTimeout(imageListUpdateTimeout);
+  }
+  imageListUpdateTimeout = setTimeout(() => {
+    populateImageList();
+    imageListUpdateTimeout = null;
+  }, 300); // 300ms debounce
+}
+
+async function populateImageList() {
+  if (isPopulatingImageList) return; // Prevent concurrent calls
+  isPopulatingImageList = true;
+  const imageListElement = document.getElementById('image-list');
+  
+  // Save scroll position
+  const scrollTop = imageListElement.scrollTop;
+  
+  imageListElement.innerHTML = '';
+  
+  // Get label status for all images at once
+  let labelStatusMap = {};
+  try {
+    const response = await fetch('/label-status-all');
+    labelStatusMap = await response.json();
+  } catch (e) {
+    console.log('Could not fetch label status, defaulting to false');
+    labelStatusMap = {};
+  }
+  
+  for (let i = 0; i < images.length; i++) {
+    const imageName = images[i];
+    const status = labelStatusMap[imageName] || "none";
+    
+    // Create image item element
+    const item = document.createElement('div');
+    item.className = 'image-item';
+    item.setAttribute('data-index', i);
+    if (i === currentImageIndex) {
+      item.classList.add('current');
+    }
+    
+    // Add label icon
+    const icon = document.createElement('span');
+    icon.className = 'label-icon';
+    if (status === "green") {
+      icon.innerHTML = '●'; // Filled circle for all classes present
+      icon.style.color = '#28a745'; // Green - all classes present
+    } else if (status === "yellow") {
+      icon.innerHTML = '●'; // Filled circle for X+ polygons but missing classes
+      icon.style.color = '#ffe066'; // Yellow - X+ polygons but not all classes
+    } else if (status === "orange") {
+      icon.innerHTML = '●'; // Filled circle for some classes missing
+      icon.style.color = '#fd7e14'; // Orange - missing classes
+    } else {
+      icon.innerHTML = '○'; // Empty circle for unlabeled
+      icon.style.color = '#6c757d'; // Gray
+    }
+    
+    // Add image name
+    const name = document.createElement('span');
+    name.className = 'image-name';
+    name.textContent = imageName;
+    
+    item.appendChild(icon);
+    item.appendChild(name);
+    item.onclick = () => navigateToImage(i);
+    
+    imageListElement.appendChild(item);
+  }
+  
+  // Restore scroll position
+  imageListElement.scrollTop = scrollTop;
+  
+  isPopulatingImageList = false;
+}
+
+function navigateToImage(index) {
+  loadImage(index);
+  updateImageListCurrent();
+}
+
+function updateImageListCurrent() {
+  const items = document.querySelectorAll('.image-item');
+  items.forEach((item, index) => {
+    item.classList.toggle('current', index === currentImageIndex);
+  });
 }
 
 // ===== Class Selection =====
@@ -290,11 +538,21 @@ async function loadImage(idx) {
     // Load existing labels for this image
     await loadExistingLabels(images[currentImageIndex]);
     
-    // Force multiple redraws to prevent artifacts
+    // Update image list current indicator
+    updateImageListCurrent();
+    
+    // Update status bar
+    updateStatusBar();
+    
+    // Force multiple redraws to ensure proper image display
     requestAnimationFrame(() => {
       draw();
       requestAnimationFrame(() => {
         draw();
+        requestAnimationFrame(() => {
+          // One more draw after a brief delay to ensure image is visible
+          setTimeout(() => draw(), 50);
+        });
       });
     });
   };
@@ -435,6 +693,7 @@ canvas.addEventListener("wheel", (e) => {
   panX = mouseX - (mouseX - panX) * zoomRatio;
   panY = mouseY - (mouseY - panY) * zoomRatio;
   zoom = newZoom;
+  updateZoomInfo();
 
   // Force multiple redraws to prevent artifacts
   requestAnimationFrame(() => {
@@ -630,6 +889,8 @@ function dist(x1,y1,x2,y2){ return Math.hypot(x1-x2,y1-y2); }
 
 // ===== Drawing =====
 function draw() {
+  // Update polygon count in status bar
+  updatePolygonCount();
   // Completely reset the canvas context
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -782,6 +1043,19 @@ document.getElementById("deletePolyBtn").onclick = () => {
 async function save() {
   if (!currentImage) return;
   
+  // Only save if there's at least one closed polygon
+  const closedPolygons = polygons.filter(poly => poly.points.length >= 3);
+  if (closedPolygons.length === 0) {
+    const statusMessage = document.getElementById("status-message");
+    statusMessage.textContent = "No closed polygons to save";
+    statusMessage.classList.add("error");
+    setTimeout(() => {
+      statusMessage.textContent = "";
+      statusMessage.classList.remove("error");
+    }, 2000);
+    return;
+  }
+  
   // Calculate image display dimensions (same logic as in draw function)
   const imageAspect = currentImage.width / currentImage.height;
   const canvasAspect = canvas.width / canvas.height;
@@ -804,7 +1078,7 @@ async function save() {
   
   const data = {
     image: images[currentImageIndex],
-    annotations: polygons.map(p => ({
+    annotations: closedPolygons.map(p => ({
       class_id: p.class_id,
       points: p.points.map(pt => [
         (pt.x - imageX) / imageWidth,
@@ -827,26 +1101,79 @@ async function save() {
     }
     
     const result = await response.json();
-    const status = document.getElementById("status");
-    status.textContent = "Saved!";
-    setTimeout(() => status.textContent = "", 2000);
+    const statusMessage = document.getElementById("status-message");
+    statusMessage.textContent = "Saved!";
+    statusMessage.classList.remove("error");
+    setTimeout(() => statusMessage.textContent = "", 2000);
+    
+    // Refresh image list to update label status
+    debounceUpdateImageList();
   } catch (error) {
     console.error('Save error:', error);
-    const status = document.getElementById("status");
-    status.textContent = `Save failed: ${error.message}`;
-    status.style.color = "#ff4444";
+    const statusMessage = document.getElementById("status-message");
+    statusMessage.textContent = `Save failed: ${error.message}`;
+    statusMessage.classList.add("error");
     setTimeout(() => {
-      status.textContent = "";
-      status.style.color = "#4a90e2";
+      statusMessage.textContent = "";
+      statusMessage.classList.remove("error");
     }, 5000);
   }
 }
 
 // ===== Remove Saved State =====
 function removeSavedState() {
-  const status = document.getElementById("status");
-  status.textContent = "Editing...";
-  setTimeout(() => status.textContent = "", 1000);
+  const statusMessage = document.getElementById("status-message");
+  statusMessage.textContent = "Editing...";
+  statusMessage.classList.remove("error");
+  setTimeout(() => statusMessage.textContent = "", 1000);
+}
+
+// ===== Status Bar Updates =====
+function updateImageFilename() {
+  const filenameElement = document.getElementById("image-filename");
+  if (images && images.length > 0 && currentImageIndex >= 0 && currentImageIndex < images.length) {
+    filenameElement.textContent = images[currentImageIndex];
+  } else {
+    filenameElement.textContent = "No image loaded";
+  }
+}
+
+function updateZoomInfo() {
+  const zoomElement = document.getElementById("zoom-info");
+  zoomElement.textContent = `Zoom: ${Math.round(zoom * 100)}%`;
+}
+
+function updatePolygonCount() {
+  const polygonElement = document.getElementById("polygon-count");
+  polygonElement.textContent = `Polygons: ${polygons.length}`;
+}
+
+async function saveEmptyLabels() {
+  if (!currentImage) return;
+  
+  const data = {
+    image: images[currentImageIndex],
+    annotations: []
+  };
+  
+  try {
+    const response = await fetch("/save", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(data)
+    });
+    
+    // Refresh image list to show empty state
+    setTimeout(() => debounceUpdateImageList(), 500);
+  } catch (error) {
+    console.error('Save empty labels error:', error);
+  }
+}
+
+function updateStatusBar() {
+  updateImageFilename();
+  updateZoomInfo();
+  updatePolygonCount();
 }
 
 // ===== Keyboard Shortcuts =====
@@ -854,13 +1181,16 @@ document.addEventListener("keydown", (e) => {
   // Prevent shortcuts when typing in input fields
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   
-  // Track space key for panning
-  if (e.code === "Space" && !isPanMode) {
-    isPanMode = true;
-    canvas.style.cursor = "grab";
-    lastPanX = 0;
-    lastPanY = 0;
+  // Prevent space from scrolling image list when used for panning
+  if (e.code === "Space") {
     e.preventDefault();
+    if (!isPanMode) {
+      isPanMode = true;
+
+      canvas.style.cursor = "grab";
+      lastPanX = 0;
+      lastPanY = 0;
+    }
   }
   
   switch(e.key.toLowerCase()) {
@@ -1006,20 +1336,35 @@ document.getElementById("saveBtn").onclick = save;
 function zoomIn() {
   const newZoom = Math.min(5, zoom * 1.2);
   zoom = newZoom;
-  draw();
+  updateZoomInfo();
+  // Force multiple redraws for better rendering
+  requestAnimationFrame(() => {
+    draw();
+    requestAnimationFrame(() => draw());
+  });
 }
 
 function zoomOut() {
   const newZoom = Math.max(0.1, zoom / 1.2);
   zoom = newZoom;
-  draw();
+  updateZoomInfo();
+  // Force multiple redraws for better rendering
+  requestAnimationFrame(() => {
+    draw();
+    requestAnimationFrame(() => draw());
+  });
 }
 
 function resetZoom() {
   zoom = 1;
   panX = 0;
   panY = 0;
-  draw();
+  updateZoomInfo();
+  // Force multiple redraws for better rendering
+  requestAnimationFrame(() => {
+    draw();
+    requestAnimationFrame(() => draw());
+  });
 }
 
 document.getElementById("zoomInBtn").onclick = zoomIn;

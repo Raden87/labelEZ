@@ -116,6 +116,65 @@ def save_labels():
         response.headers.add("Access-Control-Allow-Origin", "*")
         return response, 500
 
+@app.route("/label-status/<filename>")
+def check_label_status(filename):
+    """Check if a label file exists for a given image filename"""
+    label_file = os.path.join(LABELS_DIR, os.path.splitext(filename)[0] + ".txt")
+    has_label = os.path.exists(label_file)
+    
+    response = jsonify({"has_label": has_label})
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
+
+@app.route("/label-status-all")
+def check_all_label_status():
+    """Check label status for all images at once"""
+    image_files = [f for f in os.listdir(IMAGES_DIR) if f.lower().endswith((".jpg", ".png"))]
+    image_files.sort()
+    
+    status_map = {}
+    total_classes = 6  # Based on classes.txt
+    
+    for img_file in image_files:
+        label_file = os.path.join(LABELS_DIR, os.path.splitext(img_file)[0] + ".txt")
+        has_label = os.path.exists(label_file)
+        
+        if has_label:
+            try:
+                with open(label_file, "r") as f:
+                    lines = f.readlines()
+                    valid_polygon_count = 0
+                    unique_classes = set()
+                    for line in lines:
+                        line = line.strip()
+                        if line:  # Non-empty line
+                            parts = line.split()
+                            # Valid polygon format: class_id + at least 6 coordinate values (3 points)
+                            if len(parts) >= 7 and len(parts) % 2 == 1:  # Odd number = class + pairs
+                                valid_polygon_count += 1
+                                class_id = int(parts[0])
+                                if 0 <= class_id < total_classes:  # Valid class ID
+                                    unique_classes.add(class_id)
+                    
+                    print(f"{img_file}: {valid_polygon_count} valid polygons, {len(unique_classes)} unique classes (0-{total_classes-1})")
+                    
+                    if valid_polygon_count == 0:
+                        status_map[img_file] = "none"  # Has label file but no valid polygons
+                    elif valid_polygon_count >= total_classes and len(unique_classes) < total_classes:
+                        status_map[img_file] = "yellow"  # X+ polygons but not all classes present
+                    elif len(unique_classes) < total_classes:
+                        status_map[img_file] = "orange"  # Missing classes
+                    else:
+                        status_map[img_file] = "green"  # All classes present - complete coverage
+            except:
+                status_map[img_file] = "none"  # Error reading file
+        else:
+            status_map[img_file] = "none"  # No label file
+    
+    response = jsonify(status_map)
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
+
 if __name__ == "__main__":
     os.makedirs(LABELS_DIR, exist_ok=True)
     os.makedirs(IMAGES_DIR, exist_ok=True)

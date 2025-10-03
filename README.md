@@ -20,10 +20,20 @@ A web-based polygon labeling tool for creating YOLO format annotations with an i
 - **Polygon Drawing**: Click to add points, click first point to close polygon
 - **Multi-Input Support**: Works with mouse, touch, and pen/stylus input (Pointer Events API)
 - **Class Selection**: Configurable classes with color-coded buttons (supports up to 20 classes)
+- **Visual Status System**:
+  - 🟢 **Green dots**: Complete - All classes present
+  - 🟡 **Yellow dots**: Partial - Many polygons but missing some classes
+  - 🟠 **Orange dots**: Incomplete - Few polygons or missing classes
+  - ⚪ **Gray circles**: Empty - No labels
 - **Zoom & Pan**: 
   - Mouse wheel to zoom, Space+move to pan
   - Touch pinch zoom on mobile/tablets
   - Dedicated zoom buttons and keyboard shortcuts
+  - Space key disabled in image list scroll (prevents conflicts)
+- **Smart Navigation**: 
+  - Image list with live status indicators
+  - Click any image to navigate instantly
+  - Auto-refresh status when saving changes
 - **Keyboard Shortcuts**: 
   - `S` - Save
   - `Z` - Undo last point
@@ -38,6 +48,7 @@ A web-based polygon labeling tool for creating YOLO format annotations with an i
   - `Q-P` - Select classes 10-19 (Q=class 10, W=class 11, etc.)
 - **Auto-save**: Automatically saves when polygons are completed
 - **Label Loading**: Loads existing labels when switching images
+- **Real-time Status Bar**: Shows current image filename, zoom level, polygon count, and completion status
 - **Docker Support**: Ready-to-deploy container with health checks
 
 ## Setup
@@ -114,12 +125,24 @@ labelEZ/
 
 ## Usage
 
-1. **Select Class**: Click class buttons or use keyboard shortcuts (1-9, 0, Q-P)
-2. **Draw Polygon**: Click to add points, click first point to close
-3. **Zoom Control**: Pan (space+drag) to navigate; zoom with `/=` keys or buttons
-4. **Edit**: Drag points to adjust, use Z to undo, X to delete
-5. **Navigate**: Use B/N keys or buttons to switch images
-6. **Save**: Press S or auto-saves when polygon is closed
+1. **Select Class**: Click class buttons (right panel) or use keyboard shortcuts (1-9, 0, Q-P)
+2. **Draw Polygon**: Click to add points, click first point to close polygon
+3. **Zoom & Pan**: 
+   - Hold Space + drag to pan around
+   - Mouse wheel to zoom
+   - `-`/`=` keys or zoom buttons for precise control
+4. **Navigate Images**: 
+   - Use left panel image list (click any image to jump to it)
+   - B/N keys or Previous/Next buttons
+   - Status dots show completion status
+5. **Edit Polygons**: 
+   - Drag existing points to adjust
+   - Z key to undo last point
+   - X key to delete current polygon
+6. **Save**: Automatic when polygon is closed, or press S manually
+7. **Monitor Progress**: 
+   - Bottom status bar shows current filename, zoom, polygon count
+   - Image list shows color-coded completion status
 
 ### Input Methods
 - **Mouse**: Standard clicking and dragging
@@ -134,6 +157,16 @@ class_id x1 y1 x2 y2 x3 y3 ...
 ```
 
 Where coordinates are normalized (0-1) relative to image dimensions.
+
+## Recent Improvements
+
+### v2.1 - Interface Enhancements
+- **Visual Status System**: Color-coded dots show completion status at a glance
+- **Smart Status Bar**: Compact status display with image filename, zoom, and polygon count  
+- **Enhanced Image Navigation**: Clickable image list with live status updates
+- **Space Key Fix**: Prevents image list scroll conflicts during panning
+- **Improved Rendering**: Better image display on page load with multiple draw passes
+- **Status Legend**: Clear indicators for Complete, Partial, Incomplete, and Empty states
 
 ## Security Note
 
